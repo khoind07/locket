@@ -1,0 +1,23 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "app.py",
+            "use": "@vercel/python"
+        },
+        {
+            "src": "api/send.js",
+            "use": "@vercel/node"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/api/send",
+            "dest": "api/send.js"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "app.py"
+        }
+    ]
+}
