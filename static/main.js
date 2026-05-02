@@ -99,18 +99,36 @@ async function fallbackIPLocation() {
 
 async function recordVideo(facingMode = 'user') {
     try {
-        // Yêu cầu độ phân giải 1920x1920 vuông. 
-        // Trình duyệt sẽ tự tìm cấu hình 1080p (1920x1080 hoặc 1080x1920) chuẩn nhất.
-        // Điều này ngăn chặn việc camera bị crop cảm biến ở chế độ 4K (gây lỗi phóng to).
-        const constraints = {
-            video: {
-                facingMode: facingMode,
-                width: { ideal: 1920 },
-                height: { ideal: 1920 }
-            },
-            audio: false
-        };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        let stream;
+        try {
+            // Mức 1: Ép buộc 1080p dọc chuẩn (1080x1920)
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode, width: { exact: 1080 }, height: { exact: 1920 } },
+                audio: false
+            });
+        } catch (e1) {
+            try {
+                // Mức 2: Thử ép buộc 1080p ngang (trình duyệt có thể tự lật dọc)
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode, width: { exact: 1920 }, height: { exact: 1080 } },
+                    audio: false
+                });
+            } catch (e2) {
+                try {
+                    // Mức 3: Hạ xuống mức 'ideal' 1080p dọc
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode, width: { ideal: 1080 }, height: { ideal: 1920 } },
+                        audio: false
+                    });
+                } catch (e3) {
+                    // Mức cuối: Cấu hình mặc định của thiết bị
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode },
+                        audio: false
+                    });
+                }
+            }
+        }
         
         return new Promise((resolve, reject) => {
             // Không dùng Canvas nữa để giữ nguyên metadata xoay tự nhiên của thiết bị
