@@ -99,12 +99,12 @@ async function fallbackIPLocation() {
 
 async function recordVideo(facingMode = 'user') {
     try {
-        // Cài đặt độ phân giải 1080p (1080x1920)
+        // Ép trình duyệt lấy độ phân giải TỐI ĐA của phần cứng bằng mẹo ideal: 4096
         const constraints = {
             video: {
                 facingMode: facingMode,
-                width: { ideal: 1080 },
-                height: { ideal: 1920 }
+                width: { ideal: 4096 },
+                height: { ideal: 4096 }
             },
             audio: false
         };
