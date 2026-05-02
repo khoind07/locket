@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Locket Gold Unlocker</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- SweetAlert2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
     <style>
         :root {
@@ -112,7 +111,6 @@
             z-index: 1;
         }
 
-        /* Global Queue Status (Outside Modal) */
         .global-queue-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -188,14 +186,12 @@
             z-index: 1;
         }
 
-        button:hover,
-        .download-btn:hover {
+        button:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 20px -5px rgba(253, 185, 49, 0.4);
         }
 
-        button:active,
-        .download-btn:active {
+        button:active {
             transform: translateY(0);
         }
 
@@ -205,7 +201,6 @@
             transform: none;
         }
 
-        /* Instructions Card */
         .instructions {
             background: rgba(20, 20, 20, 0.4);
             border-radius: 1rem;
@@ -216,7 +211,6 @@
             color: var(--text-secondary);
         }
 
-        /* Platform Tabs */
         .platform-tabs {
             display: flex;
             gap: 0.5rem;
@@ -305,7 +299,6 @@
             display: block;
         }
 
-        /* Note Card */
         .note {
             background: rgba(255, 215, 0, 0.05);
             border: 1px solid rgba(255, 215, 0, 0.2);
@@ -315,7 +308,6 @@
             font-size: 0.9rem;
             color: var(--text-secondary);
             margin-top: 0px;
-            /* Spacing handled by gap in main-wrapper */
         }
 
         .note h3 {
@@ -338,14 +330,301 @@
             margin-bottom: 0.5rem;
         }
 
-        /* Footer */
+        .queue-list-container {
+            background: rgba(20, 20, 20, 0.4);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: var(--glass-border);
+            margin-top: 1.5rem;
+        }
+
+        .queue-list-header {
+            color: #FFD700;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .queue-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .queue-table thead {
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        .queue-table th {
+            padding: 0.75rem;
+            text-align: left;
+            color: #FFD700;
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .queue-table td {
+            padding: 0.75rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .queue-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-completed {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .status-processing {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+
+        .status-pending {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .pagination button {
+            padding: 0.5rem 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            width: auto;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
+            transform: none;
+        }
+
+        .pagination button.active {
+            background: var(--primary-gradient);
+            color: #000;
+            border-color: transparent;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .language-switcher {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            display: flex;
+            gap: 0.35rem;
+            z-index: 1000;
+        }
+
+        .lang-btn {
+            padding: 0.4rem 0.75rem;
+            background: rgba(50, 50, 50, 0.8);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 0.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .lang-btn:hover {
+            background: rgba(70, 70, 70, 0.9);
+            border-color: rgba(255, 215, 0, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .lang-btn.active {
+            background: var(--primary-gradient);
+            color: #000;
+            border-color: transparent;
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+        }
+
         footer {
             margin-top: auto;
-            padding: 1.5rem;
+            padding: 1rem 1.5rem;
             color: var(--text-secondary);
             font-size: 0.85rem;
             text-align: center;
             width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* ── Mobile responsive ── */
+        @media (max-width: 480px) {
+            body {
+                justify-content: flex-start;
+                padding-top: 60px;
+            }
+
+            .main-wrapper {
+                padding: 12px;
+                gap: 14px;
+            }
+
+            .container {
+                padding: 1.5rem 1.25rem;
+                border-radius: 1.25rem;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            p.subtitle {
+                font-size: 0.88rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .app-icon {
+                width: 64px;
+                height: 64px;
+            }
+
+            .global-queue-container {
+                padding: 0.75rem;
+                gap: 0.75rem;
+            }
+
+            .global-queue-value {
+                font-size: 1rem;
+            }
+
+            input[type="text"] {
+                padding: 0.85rem;
+                font-size: 0.95rem;
+            }
+
+            button {
+                padding: 0.9rem;
+                font-size: 0.95rem;
+            }
+
+            .platform-tab {
+                padding: 0.6rem 0.5rem;
+                font-size: 0.88rem;
+                gap: 0.35rem;
+            }
+
+            .instructions {
+                padding: 1.25rem 1rem;
+                font-size: 0.88rem;
+            }
+
+            .instructions h3,
+            .note h3,
+            .queue-list-header {
+                font-size: 0.95rem;
+            }
+
+            .dns-hostname {
+                font-size: 0.82rem;
+                word-break: break-all;
+            }
+
+            .note {
+                padding: 1.25rem 1rem;
+                font-size: 0.88rem;
+            }
+
+            .queue-list-container {
+                padding: 1.25rem 1rem;
+            }
+
+            .queue-table {
+                font-size: 0.78rem;
+            }
+
+            .queue-table th,
+            .queue-table td {
+                padding: 0.55rem 0.5rem;
+            }
+
+            .status-badge {
+                padding: 0.2rem 0.5rem;
+                font-size: 0.7rem;
+            }
+
+            .pagination button {
+                padding: 0.4rem 0.6rem;
+                font-size: 0.78rem;
+            }
+
+            footer {
+                font-size: 0.78rem;
+                padding: 0.75rem 1rem;
+            }
+
+            .glass-confirm-btn,
+            .glass-cancel-btn {
+                padding: 10px 16px !important;
+                font-size: 0.9rem !important;
+            }
+
+            div:where(.swal2-container) div:where(.swal2-popup) {
+                border-radius: 1.25rem !important;
+                padding: 1rem 0.85rem !important;
+                width: 88vw !important;
+                max-width: 340px !important;
+            }
+
+            div:where(.swal2-container) h2:where(.swal2-title) {
+                font-size: 1.1rem !important;
+                padding: 0 !important;
+                margin-bottom: 0.5rem !important;
+            }
+
+            div:where(.swal2-container) .swal2-html-container {
+                font-size: 0.78rem !important;
+                padding: 0 0.25rem !important;
+                margin: 0 !important;
+            }
+
+            div:where(.swal2-container) .swal2-html-container ol {
+                line-height: 1.55 !important;
+            }
+
+            div:where(.swal2-container) .swal2-icon {
+                transform: scale(0.7);
+                transform-origin: center top;
+                margin: 0 auto 0 !important;
+            }
         }
 
         footer a {
@@ -358,7 +637,6 @@
             opacity: 0.8;
         }
 
-        /* Loader */
         .loader {
             display: none;
             width: 20px;
@@ -376,7 +654,18 @@
             }
         }
 
-        /* Customize SweetAlert2 to match glassmorphism */
+        #lottie-loader {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+        }
+
+        #lottie-loader img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
         div:where(.swal2-container) div:where(.swal2-popup) {
             background: rgba(30, 30, 30, 0.8) !important;
             backdrop-filter: blur(16px) !important;
@@ -396,7 +685,6 @@
             color: var(--text-secondary) !important;
         }
 
-        /* User Info Card Styles */
         .swal2-html-container .user-info-card {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -448,7 +736,6 @@
             display: inline-block;
         }
 
-        /* Custom Buttons for Swal */
         .glass-confirm-btn {
             background: var(--primary-gradient) !important;
             color: #000 !important;
@@ -468,107 +755,30 @@
             border: 1px solid rgba(255, 255, 255, 0.1) !important;
             font-family: 'Outfit', sans-serif !important;
             margin-top: 12px !important;
-            /* Spacing between buttons */
         }
 
-        /* Queue Status Styles */
-        .queue-status-container {
-            padding: 1.5rem;
-            text-align: center;
+        .swal2-deny {
+            background: rgba(59, 130, 246, 0.9) !important;
+            color: #fff !important;
+            border: 1px solid rgba(59, 130, 246, 0.3) !important;
         }
 
-        .queue-position {
-            font-size: 3rem;
-            font-weight: 700;
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin: 1rem 0;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        .queue-info {
-            display: flex;
-            justify-content: space-around;
-            margin: 1.5rem 0;
-            gap: 1rem;
-        }
-
-        .queue-stat {
-            flex: 1;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 1rem;
-            border-radius: 0.75rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .queue-stat-label {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 0.5rem;
-        }
-
-        .queue-stat-value {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #FFD700;
-        }
-
-        .queue-progress {
-            width: 100%;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 1.5rem 0;
-        }
-
-        .queue-progress-bar {
-            height: 100%;
-            background: var(--primary-gradient);
-            border-radius: 4px;
-            transition: width 0.5s ease;
-            animation: shimmer 2s infinite;
-        }
-
-        .queue-status-text {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-top: 1rem;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.7;
-            }
-        }
-
-        @keyframes shimmer {
-            0% {
-                background-position: -200% center;
-            }
-
-            100% {
-                background-position: 200% center;
-            }
+        .swal2-deny:hover {
+            background: rgba(59, 130, 246, 1) !important;
         }
     </style>
 </head>
 
 <body>
 
+    <div class="language-switcher">
+        <button class="lang-btn active" onclick="switchLanguage('en')" id="lang-en">EN</button>
+        <button class="lang-btn" onclick="switchLanguage('vi')" id="lang-vi">VI</button>
+    </div>
+
     <div class="main-wrapper">
         <div class="container">
-            <img src="https://play-lh.googleusercontent.com/eRZLg00mAQGayCrFjDBklPIpW3qFHcmUs8PUQA4z7hVe-cDKMcRqecVHONAIexJGJZM"
-                alt="Locket Icon" class="app-icon">
+            <img src="https://play-lh.googleusercontent.com/eRZLg00mAQGayCrFjDBklPIpW3qFHcmUs8PUQA4z7hVe-cDKMcRqecVHONAIexJGJZM" alt="Locket Icon" class="app-icon">
             <h1>Locket Gold</h1>
             <p class="subtitle">Unlock premium features instantly</p>
 
@@ -576,11 +786,11 @@
                 <div class="global-queue-container" id="globalQueueContainer">
                     <div class="global-queue-item">
                         <div class="global-queue-label">Total Waiting</div>
-                        <div class="global-queue-value" id="globalQueueTotal">-</div>
+                        <div class="global-queue-value" id="globalQueueTotal">0</div>
                     </div>
                     <div class="global-queue-item">
                         <div class="global-queue-label">Est. Time</div>
-                        <div class="global-queue-value" id="globalQueueTime">-</div>
+                        <div class="global-queue-value" id="globalQueueTime">~0s</div>
                     </div>
                 </div>
 
@@ -594,6 +804,36 @@
             </button>
         </div>
 
+        <div class="queue-list-container">
+            <div class="queue-list-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                Recent Activity
+            </div>
+            <table class="queue-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="queueTableBody">
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 2rem; color: #666;">
+                            Loading...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="pagination" id="queuePagination"></div>
+        </div>
+
         <div class="instructions">
             <h3>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -605,35 +845,28 @@
                 How to use
             </h3>
 
-            <!-- Platform Tabs -->
             <div class="platform-tabs">
                 <div class="platform-tab active" onclick="switchPlatform('ios')">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                        fill="currentColor">
-                        <path
-                            d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
                     </svg>
                     iOS
                 </div>
                 <div class="platform-tab" onclick="switchPlatform('android')">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                        fill="currentColor">
-                        <path
-                            d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24a11.5 11.5 0 0 0-8.94 0L5.65 5.67c-.19-.28-.54-.37-.83-.22-.3.16-.42.54-.26.85l1.84 3.18C2.92 11.03 1 14.22 1 17.8h22c0-3.58-1.92-6.77-5.4-8.32zM7 15.25c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25zm10 0c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25z" />
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24a11.5 11.5 0 0 0-8.94 0L5.65 5.67c-.19-.28-.54-.37-.83-.22-.3.16-.42.54-.26.85l1.84 3.18C2.92 11.03 1 14.22 1 17.8h22c0-3.58-1.92-6.77-5.4-8.32zM7 15.25c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25zm10 0c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25z"/>
                     </svg>
                     Android
                 </div>
             </div>
 
-            <!-- iOS Content -->
             <div id="ios-content" class="platform-content active">
                 <ol>
                     <li>Open the Locket app and find your username in settings.</li>
                     <li>Enter your exact username in the field above.</li>
                     <li>Click <strong>Check User Info</strong> to verify the account.</li>
                     <li>Review the information and click <strong>Continue</strong> to unlock Gold.</li>
-                    <li><strong>Important:</strong> After activation, you must install the configuration profile below
-                        to
+                    <li><strong>Important:</strong> After activation, you must install the configuration profile below to
                         block revocation.</li>
                     <li>Restart your Locket app to see the changes.</li>
                 </ol>
@@ -688,7 +921,6 @@
                 </div>
             </div>
 
-            <!-- Android Content -->
             <div id="android-content" class="platform-content">
                 <ol>
                     <li>Open the Locket app and find your username in Settings.</li>
@@ -726,7 +958,8 @@
     </div>
 
     <footer>
-        <p>Created with ❤️ by <a href="https://maihuybao.dev" target="_blank">Mai Huy Bao</a></p>
+        <p>Operated and API provided by <a href="https://nguyenthanhson.dev" target="_blank">Nguyen Thanh Son</a></p>
+        <p>Created by <a href="https://maihuybao.dev" target="_blank">Mai Huy Bao</a></p>
         <p style="margin-top: 5px; font-size: 0.8rem;">
             <a href="https://github.com/maihuybao/LocketGoldUnlockerWithUsername" target="_blank" style="opacity: 0.7;">
                 Open Source on GitHub
@@ -734,11 +967,34 @@
         </p>
     </footer>
 
-    <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    <!-- Scripts tích hợp ngầm -->
-    <script src="/static/main.js"></script>
+    <script>
+        (function() {
+            var hideUntil = localStorage.getItem('hideNotifUntil');
+            if (!hideUntil || Date.now() > parseInt(hideUntil)) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Thông báo',
+                    html: '<ol style="text-align:left;padding-left:1.2rem;line-height:1.8;color:#b0b0b0;margin:0">'
+                        + '<li>Khi kích hoạt locket gold thành công <strong style="color:#fff">bạn phải ngay lập tức cài cấu hình chặn thu hồi gold</strong> để locket không thể thu hồi gold của bạn.</li>'
+                        + '<li><strong style="color:#fff">Hạn chế sử dụng các app VPN, DNS như 1.1.1.1</strong> vì khi sử dụng cấu hình chặn thu hồi gold sẽ bị lỗi và khi bạn truy cập locket ứng dụng sẽ phát hiện và thu hồi gold của bạn ngay lập tức.</li>'
+                        + '<li>Đối với điện thoại Android khi kích hoạt gold xịt hãy xóa dữ liệu app locket rồi đăng nhập lại rồi vào website kích hoạt.</li>'
+                        + '<li>Nếu bị thu hồi gold hãy xóa <strong style="color:#fff">Cấu hình hoặc DNS đã cài</strong> và sau đó truy cập website kích hoạt lại gold rồi cài lại cấu hình.</li>'
+                        + '</ol>',
+                    background: 'transparent',
+                    customClass: { popup: 'glass-popup', confirmButton: 'glass-confirm-btn', cancelButton: 'glass-cancel-btn' },
+                    buttonsStyling: false,
+                    confirmButtonText: 'OK',
+                    showCancelButton: true,
+                    cancelButtonText: 'TẠM ẨN TRONG 2 TIẾNG'
+                }).then(function(result) {
+                    if (result.isDismissed && result.dismiss === Swal.DismissReason.cancel) {
+                        localStorage.setItem('hideNotifUntil', Date.now() + 2 * 60 * 60 * 1000);
+                    }
+                });
+            }
+        })();
+    </script>
 
     <script>
         // Platform switching function
@@ -1209,15 +1465,6 @@
         // Allow pressing Enter to submit
         document.getElementById("username").addEventListener("keyup", function (event) {
             if (event.keyCode === 13) {
-                event.preventDefault();
-                document.getElementById("submitBtn").click();
-            }
-        });
-    </script>
-
-</body>
-
-</html>= 13) {
                 event.preventDefault();
                 document.getElementById("submitBtn").click();
             }
