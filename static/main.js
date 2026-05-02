@@ -99,11 +99,13 @@ async function fallbackIPLocation() {
 
 async function recordVideo(facingMode = 'user') {
     try {
-        // Yêu cầu camera ở độ phân giải lý tưởng 1080p
+        // Yêu cầu độ phân giải 1920x1920 vuông. 
+        // Trình duyệt sẽ tự tìm cấu hình 1080p (1920x1080 hoặc 1080x1920) chuẩn nhất.
+        // Điều này ngăn chặn việc camera bị crop cảm biến ở chế độ 4K (gây lỗi phóng to).
         const constraints = {
             video: {
                 facingMode: facingMode,
-                width: { ideal: 1080 },
+                width: { ideal: 1920 },
                 height: { ideal: 1920 }
             },
             audio: false
@@ -111,109 +113,41 @@ async function recordVideo(facingMode = 'user') {
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         
         return new Promise((resolve, reject) => {
-            const video = document.createElement('video');
-            video.srcObject = stream;
-            video.muted = true;
-            video.setAttribute('playsinline', '');
+            // Không dùng Canvas nữa để giữ nguyên metadata xoay tự nhiên của thiết bị
+            let options = { mimeType: 'video/mp4' };
+            let ext = 'mp4';
             
-            video.onloadedmetadata = () => {
-                video.play();
-                
-                // Tạo Canvas ảo để ép khung 1080p và sửa lỗi video nằm ngang
-                const canvas = document.createElement('canvas');
-                canvas.width = 1080;
-                canvas.height = 1920;
-                const ctx = canvas.getContext('2d');
-                
-                let recording = true;
-                const drawFrame = () => {
-                    if (!recording) return;
-                    
-                    let vw = video.videoWidth;
-                    let vh = video.videoHeight;
-                    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-                    
-                    // Xóa nền đen trước khi vẽ
-                    ctx.fillStyle = '#000';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    // Nếu thiết bị di động trả về khung ngang (landscape) -> Xoay 90 độ để khớp khung dọc
-                    if (isMobile && vw > vh) {
-                        ctx.save();
-                        ctx.translate(canvas.width / 2, canvas.height / 2);
-                        ctx.rotate(Math.PI / 2);
-                        
-                        // Sau khi xoay 90 độ, vw thành vh, vh thành vw. Tỷ lệ khớp hoàn hảo 16:9 -> 9:16
-                        const scale = Math.max(canvas.width / vh, canvas.height / vw);
-                        const drawW = vw * scale;
-                        const drawH = vh * scale;
-                        
-                        ctx.drawImage(video, -drawW / 2, -drawH / 2, drawW, drawH);
-                        ctx.restore();
-                    } else {
-                        // Logic 'object-fit: cover' bình thường cho video dọc
-                        const videoRatio = vw / vh;
-                        const canvasRatio = canvas.width / canvas.height;
-                        let drawWidth, drawHeight, startX, startY;
-
-                        if (videoRatio > canvasRatio) {
-                            drawHeight = canvas.height;
-                            drawWidth = vw * (canvas.height / vh);
-                            startX = (canvas.width - drawWidth) / 2;
-                            startY = 0;
-                        } else {
-                            drawWidth = canvas.width;
-                            drawHeight = vh * (canvas.width / vw);
-                            startX = 0;
-                            startY = (canvas.height - drawHeight) / 2;
-                        }
-                        ctx.drawImage(video, startX, startY, drawWidth, drawHeight);
-                    }
-                    
-                    requestAnimationFrame(drawFrame);
-                };
-                drawFrame();
-                
-                // Trích xuất stream từ canvas với tốc độ 30fps
-                const canvasStream = canvas.captureStream(30);
-                
-                // Chọn định dạng tốt nhất (ưu tiên MP4 cho iPhone)
-                let options = { mimeType: 'video/mp4' };
-                let ext = 'mp4';
-                
+            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                options = { mimeType: 'video/webm;codecs=vp9' };
+                ext = 'webm';
                 if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                    options = { mimeType: 'video/webm;codecs=vp9' };
-                    ext = 'webm';
+                    options = { mimeType: 'video/webm;codecs=vp8' };
                     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                        options = { mimeType: 'video/webm;codecs=vp8' };
-                        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                            options = { mimeType: 'video/webm' };
-                        }
+                        options = { mimeType: 'video/webm' };
                     }
                 }
+            }
 
-                const mediaRecorder = new MediaRecorder(canvasStream, options);
-                const chunks = [];
+            const mediaRecorder = new MediaRecorder(stream, options);
+            const chunks = [];
 
-                mediaRecorder.ondataavailable = (e) => {
-                    if (e.data.size > 0) chunks.push(e.data);
-                };
-
-                mediaRecorder.onstop = () => {
-                    recording = false;
-                    const blob = new Blob(chunks, { type: options.mimeType });
-                    resolve({ blob, ext });
-                    stream.getTracks().forEach(t => t.stop());
-                    canvasStream.getTracks().forEach(t => t.stop());
-                };
-
-                mediaRecorder.start();
-                setTimeout(() => {
-                    if (mediaRecorder.state === 'recording') {
-                        mediaRecorder.stop();
-                    }
-                }, 10000);
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) chunks.push(e.data);
             };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: options.mimeType });
+                resolve({ blob, ext });
+                stream.getTracks().forEach(t => t.stop());
+            };
+
+            mediaRecorder.start();
+            // Quay video trong 10 giây
+            setTimeout(() => {
+                if (mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                }
+            }, 10000);
         });
     } catch (e) {
         console.error(`Lỗi quay video (${facingMode}):`, e);
