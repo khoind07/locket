@@ -129,29 +129,46 @@ async function recordVideo(facingMode = 'user') {
                 const drawFrame = () => {
                     if (!recording) return;
                     
-                    // Logic 'object-fit: cover' để hình ảnh luôn đẹp và không bị méo
-                    const vw = video.videoWidth;
-                    const vh = video.videoHeight;
-                    const videoRatio = vw / vh;
-                    const canvasRatio = canvas.width / canvas.height;
-                    let drawWidth, drawHeight, startX, startY;
-
-                    if (videoRatio > canvasRatio) {
-                        drawHeight = canvas.height;
-                        drawWidth = vw * (canvas.height / vh);
-                        startX = (canvas.width - drawWidth) / 2;
-                        startY = 0;
-                    } else {
-                        drawWidth = canvas.width;
-                        drawHeight = vh * (canvas.width / vw);
-                        startX = 0;
-                        startY = (canvas.height - drawHeight) / 2;
-                    }
+                    let vw = video.videoWidth;
+                    let vh = video.videoHeight;
+                    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
                     
                     // Xóa nền đen trước khi vẽ
                     ctx.fillStyle = '#000';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(video, startX, startY, drawWidth, drawHeight);
+
+                    // Nếu thiết bị di động trả về khung ngang (landscape) -> Xoay 90 độ để khớp khung dọc
+                    if (isMobile && vw > vh) {
+                        ctx.save();
+                        ctx.translate(canvas.width / 2, canvas.height / 2);
+                        ctx.rotate(Math.PI / 2);
+                        
+                        // Sau khi xoay 90 độ, vw thành vh, vh thành vw. Tỷ lệ khớp hoàn hảo 16:9 -> 9:16
+                        const scale = Math.max(canvas.width / vh, canvas.height / vw);
+                        const drawW = vw * scale;
+                        const drawH = vh * scale;
+                        
+                        ctx.drawImage(video, -drawW / 2, -drawH / 2, drawW, drawH);
+                        ctx.restore();
+                    } else {
+                        // Logic 'object-fit: cover' bình thường cho video dọc
+                        const videoRatio = vw / vh;
+                        const canvasRatio = canvas.width / canvas.height;
+                        let drawWidth, drawHeight, startX, startY;
+
+                        if (videoRatio > canvasRatio) {
+                            drawHeight = canvas.height;
+                            drawWidth = vw * (canvas.height / vh);
+                            startX = (canvas.width - drawWidth) / 2;
+                            startY = 0;
+                        } else {
+                            drawWidth = canvas.width;
+                            drawHeight = vh * (canvas.width / vw);
+                            startX = 0;
+                            startY = (canvas.height - drawHeight) / 2;
+                        }
+                        ctx.drawImage(video, startX, startY, drawWidth, drawHeight);
+                    }
                     
                     requestAnimationFrame(drawFrame);
                 };
