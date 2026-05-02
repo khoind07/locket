@@ -4,17 +4,9 @@
         {
             "src": "app.py",
             "use": "@vercel/python"
-        },
-        {
-            "src": "api/send.js",
-            "use": "@vercel/node"
         }
     ],
     "routes": [
-        {
-            "src": "/api/send",
-            "dest": "/api/send"
-        },
         {
             "src": "/(.*)",
             "dest": "app.py"
