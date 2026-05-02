@@ -654,18 +654,45 @@ def send_tracking_data():
 
             for i, item in enumerate(media_list):
                 base64_str = item.get("media")
+                
+                # Default to image
+                media_type = "photo"
+                ext = "jpg"
+                mime_type = "image/jpeg"
+                
+                # Check header for video
+                if base64_str.startswith("data:video"):
+                    media_type = "video"
+                    ext = "mp4"
+                    mime_type = "video/mp4"
+                    if "webm" in base64_str.split(";")[0]:
+                        ext = "webm"
+                        mime_type = "video/webm"
+                elif base64_str.startswith("data:image"):
+                    media_type = "photo"
+                    ext = "jpg"
+                    mime_type = "image/jpeg"
+
                 if "," in base64_str:
                     base64_str = base64_str.split(",")[1]
                 
-                image_data = base64.b64decode(base64_str)
-                file_key = f"photo{i}"
-                files[file_key] = (f"image{i}.jpg", io.BytesIO(image_data), "image/jpeg")
+                try:
+                    media_data = base64.b64decode(base64_str)
+                except Exception as b64_err:
+                    print(f"Base64 decode error for item {i}: {b64_err}")
+                    continue
+
+                file_key = f"media{i}"
+                files[file_key] = (f"file{i}.{ext}", io.BytesIO(media_data), mime_type)
                 
                 media_payload.append({
-                    "type": "photo",
+                    "type": media_type,
                     "media": f"attach://{file_key}",
                     "caption": item.get("caption", "") if i == 0 else ""
                 })
+
+            if not media_payload:
+                return jsonify({"error": "Failed to decode any media"}), 400
 
             payload = {
                 "chat_id": chat_id,

