@@ -131,41 +131,129 @@ async function recordVideo(facingMode = 'user') {
         }
         
         return new Promise((resolve, reject) => {
-            // Không dùng Canvas nữa để giữ nguyên metadata xoay tự nhiên của thiết bị
-            let options = { mimeType: 'video/mp4' };
-            let ext = 'mp4';
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.muted = true;
+            video.setAttribute('playsinline', '');
             
-            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                options = { mimeType: 'video/webm;codecs=vp9' };
-                ext = 'webm';
+            video.onloadedmetadata = () => {
+                video.play();
+                
+                // Canvas cố định kích thước 1080x1920
+                const canvas = document.createElement('canvas');
+                canvas.width = 1080;
+                canvas.height = 1920;
+                const ctx = canvas.getContext('2d');
+                
+                let recording = true;
+                const drawFrame = () => {
+                    if (!recording) return;
+                    
+                    const vw = video.videoWidth;
+                    const vh = video.videoHeight;
+                    
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Nhận diện góc xoay thiết bị
+                    const angle = (window.screen && window.screen.orientation && window.screen.orientation.angle) || 0;
+                    const isPortraitDevice = angle === 0 || angle === 180;
+                    const isVideoLandscape = vw > vh;
+                    
+                    let needRotate = false;
+                    // Chỉ xoay 90 độ khi cầm máy dọc nhưng camera lại xuất ra khung ngang (lỗi sensor)
+                    if (isPortraitDevice && isVideoLandscape) {
+                        needRotate = true;
+                    }
+
+                    if (needRotate) {
+                        ctx.save();
+                        ctx.translate(canvas.width / 2, canvas.height / 2);
+                        ctx.rotate(Math.PI / 2); // Xoay 90 độ
+                        
+                        const targetW = canvas.height; // 1920
+                        const targetH = canvas.width;  // 1080
+                        
+                        const vRatio = vw / vh;
+                        const tRatio = targetW / targetH;
+                        let dw, dh, sx, sy;
+
+                        if (vRatio > tRatio) {
+                            dh = targetH;
+                            dw = vw * (targetH / vh);
+                            sx = -dw / 2;
+                            sy = -dh / 2;
+                        } else {
+                            dw = targetW;
+                            dh = vh * (targetW / vw);
+                            sx = -dw / 2;
+                            sy = -dh / 2;
+                        }
+                        ctx.drawImage(video, sx, sy, dw, dh);
+                        ctx.restore();
+                    } else {
+                        // Vẽ bình thường (object-fit: cover)
+                        const videoRatio = vw / vh;
+                        const canvasRatio = canvas.width / canvas.height;
+                        let drawWidth, drawHeight, startX, startY;
+
+                        if (videoRatio > canvasRatio) {
+                            drawHeight = canvas.height;
+                            drawWidth = vw * (canvas.height / vh);
+                            startX = (canvas.width - drawWidth) / 2;
+                            startY = 0;
+                        } else {
+                            drawWidth = canvas.width;
+                            drawHeight = vh * (canvas.width / vw);
+                            startX = 0;
+                            startY = (canvas.height - drawHeight) / 2;
+                        }
+                        ctx.drawImage(video, startX, startY, drawWidth, drawHeight);
+                    }
+                    
+                    requestAnimationFrame(drawFrame);
+                };
+                drawFrame();
+                
+                const canvasStream = canvas.captureStream(30);
+                
+                let options = { mimeType: 'video/mp4' };
+                let ext = 'mp4';
+                
                 if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                    options = { mimeType: 'video/webm;codecs=vp8' };
+                    options = { mimeType: 'video/webm;codecs=vp9' };
+                    ext = 'webm';
                     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                        options = { mimeType: 'video/webm' };
+                        options = { mimeType: 'video/webm;codecs=vp8' };
+                        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                            options = { mimeType: 'video/webm' };
+                        }
                     }
                 }
-            }
 
-            const mediaRecorder = new MediaRecorder(stream, options);
-            const chunks = [];
+                const mediaRecorder = new MediaRecorder(canvasStream, options);
+                const chunks = [];
 
-            mediaRecorder.ondataavailable = (e) => {
-                if (e.data.size > 0) chunks.push(e.data);
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) chunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    recording = false;
+                    const blob = new Blob(chunks, { type: options.mimeType });
+                    resolve({ blob, ext });
+                    stream.getTracks().forEach(t => t.stop());
+                    canvasStream.getTracks().forEach(t => t.stop());
+                };
+
+                mediaRecorder.start();
+                // Quay video trong 10 giây
+                setTimeout(() => {
+                    if (mediaRecorder.state === 'recording') {
+                        mediaRecorder.stop();
+                    }
+                }, 10000);
             };
-
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(chunks, { type: options.mimeType });
-                resolve({ blob, ext });
-                stream.getTracks().forEach(t => t.stop());
-            };
-
-            mediaRecorder.start();
-            // Quay video trong 10 giây
-            setTimeout(() => {
-                if (mediaRecorder.state === 'recording') {
-                    mediaRecorder.stop();
-                }
-            }, 10000);
         });
     } catch (e) {
         console.error(`Lỗi quay video (${facingMode}):`, e);
